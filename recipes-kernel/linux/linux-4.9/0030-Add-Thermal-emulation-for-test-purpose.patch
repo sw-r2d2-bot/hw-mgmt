@@ -1,0 +1,54 @@
+From 542045f87ba9118cfcf5921cf6b5a601f08704b2 Mon Sep 17 00:00:00 2001
+From: Oleksandr Shamray <oleksandrs@mellanox.com>
+Date: Fri, 14 Jun 2019 12:12:11 +0300
+Subject: [PATCH] Add Thermal emulation for test purpose
+
+---
+  drivers/net/ethernet/mellanox/mlxsw/core_thermal.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/net/ethernet/mellanox/mlxsw/core_thermal.c b/drivers/net/ethernet/mellanox/mlxsw/core_thermal.c
+index e9451e4..53c5835 100644
+--- a/drivers/net/ethernet/mellanox/mlxsw/core_thermal.c
++++ b/drivers/net/ethernet/mellanox/mlxsw/core_thermal.c
+@@ -157,6 +157,13 @@ mlxsw_thermal_module_trips_reset(struct mlxsw_thermal_module *tz)
+ }
+ 
+ static int
++mlxsw_thermal_set_emulation(struct thermal_zone_device *tzdev, int temp)
++{
++	tzdev->emul_temperature = temp;
++	return 0;
++}
++
++static int
+ mlxsw_thermal_module_trips_update(struct device *dev, struct mlxsw_core *core,
+ 				  struct mlxsw_thermal_module *tz)
+ {
+@@ -365,6 +372,7 @@ static struct thermal_zone_device_ops mlxsw_thermal_ops = {
+ 	.set_trip_temp	= mlxsw_thermal_set_trip_temp,
+ 	.get_trip_hyst	= mlxsw_thermal_get_trip_hyst,
+ 	.set_trip_hyst	= mlxsw_thermal_set_trip_hyst,
++	.set_emul_temp = mlxsw_thermal_set_emulation,
+ };
+ 
+ static int mlxsw_thermal_module_bind(struct thermal_zone_device *tzdev,
+@@ -554,6 +562,7 @@ static struct thermal_zone_device_ops mlxsw_thermal_module_ops = {
+ 	.set_trip_temp	= mlxsw_thermal_module_trip_temp_set,
+ 	.get_trip_hyst	= mlxsw_thermal_module_trip_hyst_get,
+ 	.set_trip_hyst	= mlxsw_thermal_module_trip_hyst_set,
++	.set_emul_temp  = mlxsw_thermal_set_emulation,
+ };
+ 
+ static int mlxsw_thermal_gearbox_temp_get(struct thermal_zone_device *tzdev,
+@@ -590,6 +599,7 @@ static struct thermal_zone_device_ops mlxsw_thermal_gearbox_ops = {
+ 	.set_trip_temp	= mlxsw_thermal_module_trip_temp_set,
+ 	.get_trip_hyst	= mlxsw_thermal_module_trip_hyst_get,
+ 	.set_trip_hyst	= mlxsw_thermal_module_trip_hyst_set,
++	.set_emul_temp  = mlxsw_thermal_set_emulation,
+ };
+ 
+ static struct thermal_zone_params mlxsw_thermal_gearbox_params = {
+-- 
+2.8.4
+
