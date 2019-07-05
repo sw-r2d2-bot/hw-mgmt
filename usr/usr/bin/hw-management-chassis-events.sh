@@ -64,12 +64,12 @@ find_i2c_bus()
 	# Find physical bus number of Mellanox I2C controller. The default
 	# number is 1, but it could be assigned to others id numbers on
 	# systems with different CPU types.
-	for ((i=1; i<$i2c_bus_max; i++)); do
+	for ((i=1; i<i2c_bus_max; i++)); do
 		folder=/sys/bus/i2c/devices/i2c-$i
 		if [ -d $folder ]; then
-			name=`cat $folder/name | cut -d' ' -f 1`
+			name=$(< $folder/name cut -d' ' -f 1)
 			if [ "$name" == "i2c-mlxcpld" ]; then
-				i2c_bus_offset=$(($i-1))
+				i2c_bus_offset=$((i-1))
 				return
 			fi
 		fi
@@ -83,23 +83,23 @@ find_eeprom_name()
 {
 	bus=$1
 	addr=$2
-	if [ $bus -eq $i2c_bus_def_off_eeprom_vpd ]; then
+	if [ "$bus" -eq "$i2c_bus_def_off_eeprom_vpd" ]; then
 		eeprom_name=vpd_info
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_cpu ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_cpu" ]; then
 		eeprom_name=cpu_info
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_psu ] || [ $bus -eq $i2c_bus_alt_off_eeprom_psu ]; then
-		if [ $addr = $psu1_i2c_addr ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_psu" ] || [ "$bus" -eq "$i2c_bus_alt_off_eeprom_psu" ]; then
+		if [ "$addr" = "$psu1_i2c_addr" ]; then
 			eeprom_name=psu1_info
-		elif [ $addr = $psu2_i2c_addr ]; then
+		elif [ "$addr" = "$psu2_i2c_addr" ]; then
 			eeprom_name=psu2_info
 		fi
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_fan1 ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_fan1" ]; then
 		eeprom_name=fan1_info
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_fan2 ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_fan2" ]; then
 		eeprom_name=fan2_info
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_fan3 ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_fan3" ]; then
 		eeprom_name=fan3_info
-	elif [ $bus -eq $i2c_bus_def_off_eeprom_fan4 ]; then
+	elif [ "$bus" -eq "$i2c_bus_def_off_eeprom_fan4" ]; then
 		eeprom_name=fan4_info
 	fi
 }
@@ -108,7 +108,7 @@ lock_service_state_change()
 {
 	exec {LOCKFD}>${LOCKFILE}
 	/usr/bin/flock -x ${LOCKFD}
-	trap "/usr/bin/flock -u ${LOCKFD}" EXIT SIGINT SIGQUIT SIGTERM
+	trap '/usr/bin/flock -u "${LOCKFD}"' EXIT SIGINT SIGQUIT SIGTERM
 }
 
 unlock_service_state_change()
@@ -139,7 +139,7 @@ function qsfp_add_handler()
 		sleep "${TIMEOUT}"
 	done
 
-	find ${QSFP_I2C_PATH}/ -name "qsfp*" -exec ln -sf {} $qsfp_path/ \;
+	find "${QSFP_I2C_PATH}"/ -name "qsfp*" -exec ln -sf {} $qsfp_path/ \;
 }
 
 function qsfp_remove_handler()
@@ -149,10 +149,10 @@ function qsfp_remove_handler()
 
 if [ "$1" == "add" ]; then
 	if [ "$2" == "a2d" ]; then
-		ln -sf $3$4/in_voltage-voltage_scale $environment_path/$2_$5_voltage_scale
+		ln -sf "$3""$4"/in_voltage-voltage_scale $environment_path/"$2"_"$5"_voltage_scale
 		for i in {1..12}; do
-			if [ -f $3$4/in_voltage"$i"_raw ]; then
-				ln -sf $3$4/in_voltage"$i"_raw $environment_path/$2_$5_raw_"$i"
+			if [ -f "$3""$4"/in_voltage"$i"_raw ]; then
+				ln -sf "$3""$4"/in_voltage"$i"_raw $environment_path/"$2"_"$5"_raw_"$i"
 			fi
 		done
 	fi
@@ -161,9 +161,9 @@ if [ "$1" == "add" ]; then
 	   [ "$2" == "comex_voltmon1" ] || [ "$2" == "comex_voltmon2" ]; then
 		if [ "$2" == "comex_voltmon1" ]; then
 			find_i2c_bus
-			comex_bus=$(($i2c_comex_mon_bus_default+$i2c_bus_offset))
-			busdir=`echo $3$4 |xargs dirname |xargs dirname`
-			busfolder=`basename $busdir`
+			comex_bus=$((i2c_comex_mon_bus_default+i2c_bus_offset))
+			busdir=$(echo "$3""$4" |xargs dirname |xargs dirname)
+			busfolder=$(basename "$busdir")
 			bus="${busfolder:0:${#busfolder}-5}"
 			# Verify if this is not COMEX device
 			if [ "$bus" != "$comex_bus" ]; then
@@ -171,87 +171,87 @@ if [ "$1" == "add" ]; then
 			fi
 		fi
 		for i in {1..3}; do
-			if [ -f $3$4/in"$i"_input ]; then
-				ln -sf $3$4/in"$i"_input $environment_path/$2_in"$i"_input
+			if [ -f "$3""$4"/in"$i"_input ]; then
+				ln -sf "$3""$4"/in"$i"_input $environment_path/"$2"_in"$i"_input
 			fi
-			if [ -f $3$4/curr"$i"_input ]; then
-				ln -sf $3$4/curr"$i"_input $environment_path/$2_curr"$i"_input
+			if [ -f "$3""$4"/curr"$i"_input ]; then
+				ln -sf "$3""$4"/curr"$i"_input $environment_path/"$2"_curr"$i"_input
 			fi
-			if [ -f $3$4/power"$i"_input ]; then
-				ln -sf $3$4/power"$i"_input $environment_path/$2_power"$i"_input
+			if [ -f "$3""$4"/power"$i"_input ]; then
+				ln -sf "$3""$4"/power"$i"_input $environment_path/"$2"_power"$i"_input
 			fi
-			if [ -f $3$4/in"$i"_alarm ]; then
-				ln -sf $3$4/in"$i"_alarm $alarm_path/$2_in"$i"_alarm
+			if [ -f "$3""$4"/in"$i"_alarm ]; then
+				ln -sf "$3""$4"/in"$i"_alarm $alarm_path/"$2"_in"$i"_alarm
 			fi
-			if [ -f $3$4/curr"$i"_alarm ]; then
-				ln -sf $3$4/curr"$i"_alarm $alarm_path/$2_curr"$i"_alarm
+			if [ -f "$3""$4"/curr"$i"_alarm ]; then
+				ln -sf "$3""$4"/curr"$i"_alarm $alarm_path/"$2"_curr"$i"_alarm
 			fi
-			if [ -f $3$4/power"$i"_alarm ]; then
-				ln -sf $3$4/power"$i"_alarm $alarm_path/$2_power"$i"_alarm
+			if [ -f "$3""$4"/power"$i"_alarm ]; then
+				ln -sf "$3""$4"/power"$i"_alarm $alarm_path/"$2"_power"$i"_alarm
 			fi
 		done
 	fi
 	if [ "$2" == "led" ]; then
-		name=`echo $5 | cut -d':' -f2`
-		color=`echo $5 | cut -d':' -f3`
-		ln -sf $3$4/brightness $led_path/led_"$name"_"$color"
-		echo timer > $3$4/trigger
-		ln -sf $3$4/delay_on  $led_path/led_"$name"_"$color"_delay_on
-		ln -sf $3$4/delay_off $led_path/led_"$name"_"$color"_delay_off
+		name=$(echo "$5" | cut -d':' -f2)
+		color=$(echo "$5" | cut -d':' -f3)
+		ln -sf "$3""$4"/brightness $led_path/led_"$name"_"$color"
+		echo timer > "$3""$4"/trigger
+		ln -sf "$3""$4"/delay_on  $led_path/led_"$name"_"$color"_delay_on
+		ln -sf "$3""$4"/delay_off $led_path/led_"$name"_"$color"_delay_off
 		ln -sf $LED_STATE $led_path/led_"$name"_state
 
 		if [ ! -f $led_path/led_"$name"_capability ]; then
-			echo none ${color} ${color}_blink > $led_path/led_"$name"_capability
+			echo none "${color}" "${color}"_blink > $led_path/led_"$name"_capability
 		else
-			capability=`cat $led_path/led_"$name"_capability`
+			capability=$(cat $led_path/led_"$name"_capability)
 			capability="${capability} ${color} ${color}_blink"
-			echo $capability > $led_path/led_"$name"_capability
+			echo "$capability" > "$led_path"/led_"$name"_capability
 		fi
 		$led_path/led_"$name"_state
 	fi
 	if [ "$2" == "regio" ]; then
 		# Allow to driver insertion off all the attributes
 		sleep 1
-		if [ -d $3$4 ]; then
-			for attrpath in $3$4/*; do
-				attrname=$(basename ${attrpath})
-				if [ ! -d $attrpath ] && [ ! -L $attrpath ] &&
-				   [ $attrname != "uevent" ] &&
-				   [ $attrname != "name" ]; then
-					ln -sf $3$4/$attrname $system_path/$attrname
+		if [ -d "$3""$4" ]; then
+			for attrpath in "$3""$4"/*; do
+				attrname=$(basename "${attrpath}")
+				if [ ! -d "$attrpath" ] && [ ! -L "$attrpath" ] &&
+				   [ "$attrname" != "uevent" ] &&
+				   [ "$attrname" != "name" ]; then
+					ln -sf "$3""$4"/"$attrname" "$system_path"/"$attrname"
 				fi
 			done
 		fi
 	fi
 	if [ "$2" == "eeprom" ]; then
-		busdir=`echo $3$4`
-		busfolder=`basename $busdir`
+		busdir="$3""$4"
+		busfolder=$(basename "$busdir")
 		bus="${busfolder:0:${#busfolder}-5}"
 		find_i2c_bus
-		bus=$(($bus-$i2c_bus_offset))
+		bus=$((bus-i2c_bus_offset))
 		addr="0x${busfolder: -2}"
-		find_eeprom_name $bus $addr
-		ln -sf $3$4/eeprom $eeprom_path/$eeprom_name 2>/dev/null
+		find_eeprom_name "$bus" "$addr"
+		ln -sf "$3""$4"/eeprom "$eeprom_path"/"$eeprom_name" 2>/dev/null
 	fi
 	if [ "$2" == "qsfp" ]; then
 		qsfp_add_handler "${3}${4}"
 	fi
 	if [ "$2" == "watchdog" ]; then
-		wd_type=`cat $3$4/identity`
+		wd_type=$(cat "$3""$4"/identity)
 		case $wd_type in
 			mlx-wdt-*)
-				wd_sub="$(echo $wd_type | cut -c 9-)"
-				if [ ! -d ${watchdog_path}/${wd_sub} ]; then
-					mkdir ${watchdog_path}/${wd_sub}
+				wd_sub=$(echo "$wd_type" | cut -c 9-)
+				if [ ! -d "${watchdog_path}"/"${wd_sub}" ]; then
+					mkdir "${watchdog_path}"/"${wd_sub}"
 				fi
-				ln -sf $3$4/bootstatus ${watchdog_path}/${wd_sub}/bootstatus
-				ln -sf $3$4/nowayout ${watchdog_path}/${wd_sub}/nowayout
-				ln -sf $3$4/status ${watchdog_path}/${wd_sub}/status
-				ln -sf $3$4/timeout ${watchdog_path}/${wd_sub}/timeout
-				ln -sf $3$4/identity ${watchdog_path}/${wd_sub}/identity
-				ln -sf $3$4/state ${watchdog_path}/${wd_sub}/state
-				if [ -f $3$4/timeleft ]; then
-					ln -sf $3$4/timeleft ${watchdog_path}/${wd_sub}/timeleft
+				ln -sf "$3""$4"/bootstatus "${watchdog_path}"/"${wd_sub}"/bootstatus
+				ln -sf "$3""$4"/nowayout "${watchdog_path}"/"${wd_sub}"/nowayout
+				ln -sf "$3""$4"/status "${watchdog_path}"/"${wd_sub}"/status
+				ln -sf "$3""$4"/timeout "${watchdog_path}"/"${wd_sub}"/timeout
+				ln -sf "$3""$4"/identity "${watchdog_path}"/"${wd_sub}"/identity
+				ln -sf "$3""$4"/state "${watchdog_path}"/"${wd_sub}"/state
+				if [ -f "$3""$4"/timeleft ]; then
+					ln -sf "$3""$4"/timeleft "${watchdog_path}"/"${wd_sub}"/timeleft
 				fi
 				;;
 			*)
@@ -261,17 +261,17 @@ if [ "$1" == "add" ]; then
 elif [ "$1" == "mv" ]; then
 	if [ "$2" == "sfp" ]; then
 		lock_service_state_change
-		[ -f "$config_path/sfp_counter" ] && sfp_counter=`cat $config_path/sfp_counter`
-		sfp_counter=$(($sfp_counter+1))
-		echo $sfp_counter > $config_path/sfp_counter
+		[ -f "$config_path/sfp_counter" ] && sfp_counter=$(cat "$config_path"/sfp_counter)
+		sfp_counter=$((sfp_counter+1))
+		echo "$sfp_counter" > "$config_path"/sfp_counter
 		unlock_service_state_change
 	fi
 else
 	if [ "$2" == "a2d" ]; then
-		unlink $environment_path/$2_$5_voltage_scale
+		unlink $environment_path/"$2"_"$5"_voltage_scale
 		for i in {1..12}; do
-			if [ -L $environment_path/$2_$5_raw_"$i" ]; then
-				unlink $environment_path/$2_$5_raw_"$i"
+			if [ -L $environment_path/"$2"_"$5"_raw_"$i" ]; then
+				unlink $environment_path/"$2"_"$5"_raw_"$i"
 			fi
 		done
 	fi
@@ -280,9 +280,9 @@ else
  	   [ "$2" == "comex_voltmon1" ] || [ "$2" == "comex_voltmon2" ]; then
 		if [ "$2" == "comex_voltmon1" ]; then
 			find_i2c_bus
-			comex_bus=$(($i2c_comex_mon_bus_default+$i2c_bus_offset))
-			busdir=`echo $3$4 |xargs dirname |xargs dirname`
-			busfolder=`basename $busdir`
+			comex_bus=$((i2c_comex_mon_bus_default+i2c_bus_offset))
+			busdir=$(echo"$3""$4" |xargs dirname |xargs dirname)
+			busfolder=$(basename "$busdir")
 			bus="${busfolder:0:${#busfolder}-5}"
 			# Verify if this is not COMEX device
 			if [ "$bus" != "$comex_bus" ]; then
@@ -290,29 +290,29 @@ else
 			fi
 		fi
 		for i in {1..3}; do
-			if [ -L $environment_path/$2_in"$i"_input ]; then
-				unlink $environment_path/$2_in"$i"_input
+			if [ -L "$environment_path"/"$2"_in"$i"_input ]; then
+				unlink $environment_path/"$2"_in"$i"_input
 			fi
-			if [ -L $environment_path/$2_curr"$i"_input ]; then
-				unlink $environment_path/$2_curr"$i"_input
+			if [ -L $environment_path/"$2"_curr"$i"_input ]; then
+				unlink $environment_path/"$2"_curr"$i"_input
 			fi
-			if [ -L $environment_path/$2_power"$i"_input ]; then
-				unlink $environment_path/$2_power"$i"_input
+			if [ -L $environment_path/"$2"_power"$i"_input ]; then
+				unlink $environment_path/"$2"_power"$i"_input
 			fi
-			if [ -L $alarm_path/$2_in"$i"_alarm ]; then
-				unlink $alarm_path/$2_in"$i"_alarm
+			if [ -L $alarm_path/"$2"_in"$i"_alarm ]; then
+				unlink $alarm_path/"$2"_in"$i"_alarm
 			fi
-			if [ -L $alarm_path/$2_curr"$i"_alarm ]; then
-				unlink $alarm_path/$2_curr"$i"_alarm
+			if [ -L $alarm_path/"$2"_curr"$i"_alarm ]; then
+				unlink $alarm_path/"$2"_curr"$i"_alarm
 			fi
-			if [ -L $alarm_path/$2_power"$i"_alarm ]; then
-				unlink $alarm_path/$2_power"$i"_alarm
+			if [ -L $alarm_path/"$2"_power"$i"_alarm ]; then
+				unlink $alarm_path/"$2"_power"$i"_alarm
 			fi
 		done
 	fi
 	if [ "$2" == "led" ]; then
-		name=`echo $5 | cut -d':' -f2`
-		color=`echo $5 | cut -d':' -f3`
+		name=$(echo "$5" | cut -d':' -f2)
+		color=$(echo "$5" | cut -d':' -f3)
 		unlink $led_path/led_"$name"_"$color"
 		unlink $led_path/led_"$name"_"$color"_delay_on
 		unlink $led_path/led_"$name"_"$color"_delay_off
@@ -326,32 +326,32 @@ else
 	fi
 	if [ "$2" == "regio" ]; then
 		if [ -d $system_path ]; then
-			for attrname in $system_path/*; do
-				attrname=$(basename ${attrname})
-				if [ -L $system_path/$attrname ]; then
-					unlink $system_path/$attrname
+			for attrname in "$system_path"/*; do
+				attrname=$(basename "${attrname}")
+				if [ -L "$system_path"/"$attrname" ]; then
+					unlink "$system_path"/"$attrname"
 				fi
 			done
 		fi
 	fi
 	if [ "$2" == "eeprom" ]; then
-		busdir=`echo $3$4`
-		busfolder=`basename $busdir`
+		busdir="$3""$4"
+		busfolder=$(basename "$busdir")
 		bus="${busfolder:0:${#busfolder}-5}"
 		find_i2c_bus
-		bus=$(($bus-$i2c_bus_offset))
+		bus=$((bus-i2c_bus_offset))
 		addr="0x${busfolder: -2}"
-		find_eeprom_name $bus $addr
-		unlink $eeprom_path/$eeprom_name
+		find_eeprom_name "$bus" "$addr"
+		unlink "$eeprom_path"/"$eeprom_name"
 	fi
 	if [ "$2" == "qsfp" ]; then
 		qsfp_remove_handler
 	fi
 	if [ "$2" == "watchdog" ]; then
-	wd_type=`cat $3$4/identity`
+	wd_type=$(cat "$3""$4"/identity)
 		case $wd_type in
 			mlx-wdt-*)
-				find $watchdog_path/ -name $wd_type"*" -type l -exec unlink {} \;
+				find "$watchdog_path"/ -name "$wd_type""*" -type l -exec unlink {} \;
 				;;
 			*)
 				;;
@@ -359,8 +359,8 @@ else
 	fi
 	if [ "$2" == "sfp" ]; then
 		lock_service_state_change
-		[ -f "$config_path/sfp_counter" ] && sfp_counter=`cat $config_path/sfp_counter`
-		sfp_counter=$(($sfp_counter-1))
+		[ -f "$config_path/sfp_counter" ] && sfp_counter=$(cat $config_path/sfp_counter)
+		sfp_counter=$((sfp_counter-1))
 		echo $sfp_counter > $config_path/sfp_counter
 		unlock_service_state_change
 	fi

@@ -303,7 +303,7 @@ validate_thermal_configuration()
 	# Wait for symbolic links creation.
 	sleep 3
 	# Validate FAN fault symbolic links.
-	for ((i=1; i<=$max_tachos; i+=1)); do
+	for ((i=1; i<=max_tachos; i+=1)); do
 		if [ ! -L $thermal_path/fan"$i"_fault ]; then
 			log_failure_msg "FAN fault status attributes are not exist"
 			return 1
@@ -318,11 +318,11 @@ validate_thermal_configuration()
 		log_failure_msg "Thermal zone attributes are not exist"
 		return 1
 	fi
-	if [ ! -L $pwm ] || [ ! -L $asic ]; then
-		log_failure_msg "PWM control and ASIC attributes are not exist"
+	if [ ! -L $pwm ] || [ ! -L "$temp_asic" ]; then
+		log_failure_msg "PWM control and ASIC attributes are not exist $pwm $temp_asic"
 		return 1
 	fi
-	for ((i=1; i<=$module_counter; i+=1)); do
+	for ((i=1; i<=module_counter; i+=1)); do
 		if [ -L $thermal_path/temp_module"$i" ]; then
 			if [ ! -L $thermal_path/temp_module_fault"$i" ]; then
 				log_failure_msg "QSFP module attributes are not exist"
@@ -330,12 +330,12 @@ validate_thermal_configuration()
 			fi
 		fi
 	done
-	if [ ! -L $fan_amb ] || [ ! -L $port_amb ]; then
+	if [ ! -L "$temp_fan_amb" ] || [ ! -L "$temp_port_amb" ]; then
 		log_failure_msg "Ambient temperature sensors attributes are not exist"
 		return 1
 	fi
-	if [ $max_psus -gt 0 ]; then
-		if [ ! -L $psu1_status ] || [ ! -L $psu2_status ]; then
+	if [ "$max_psus" -gt 0 ]; then
+		if [ ! -L "$psu1_status" ] || [ ! -L "$psu2_status" ]; then
 			log_failure_msg "PS units status attributes are not exist"
 			return 1
 		fi
@@ -344,14 +344,14 @@ validate_thermal_configuration()
 
 check_untrested_module_sensor()
 {
-	for ((i=1; i<=$module_counter; i+=1)); do
+	for ((i=1; i<=module_counter; i+=1)); do
 		tz_check_suspend
 		if [ "$?" -ne 0 ]; then
 			exit
 		fi
 		if [ -L $thermal_path/temp_fault_module"$i" ]; then
-			temp_fault=`cat $thermal_path/temp_fault_module"$i"`
-			if [ $temp_fault -eq 1 ]; then
+			temp_fault=$(cat $thermal_path/temp_fault_module"$i")
+			if [ "$temp_fault" -eq 1 ]; then
 				untrusted_sensor=1
 			fi
 		fi
@@ -360,13 +360,13 @@ check_untrested_module_sensor()
 
 thermal_periodic_report()
 {
-	f1=`cat $thermal_path/mlxsw/thermal_zone_temp`
-	f2=`cat $temp_fan_amb`
-	f3=`cat $temp_port_amb`
-	f4=`cat $pwm`
-	f5=$(($fan_dynamic_min-$fan_max_state))
-	dyn=$(($f5*10))
-	cooling=`cat $cooling_cur_state` # entry=`cat $thermal_path/cooling_cur_state`
+	f1=$(cat $thermal_path/mlxsw/thermal_zone_temp)
+	f2=$(cat $temp_fan_amb)
+	f3=$(cat $temp_port_amb)
+	f4=$(cat $pwm)
+	f5=$((fan_dynamic_min-fan_max_state))
+	dyn=$((f5*10))
+	cooling=$(cat $cooling_cur_state) # entry=$(cat $thermal_path/cooling_cur_state
 	if [ "$cooling" -gt "$set_cur_state" ]; then
 		set_cur_state=$cooling
 		if [ "$cooling" -gt "$f5" ]; then
@@ -379,70 +379,70 @@ thermal_periodic_report()
                 fi
 	fi
 	ps_fan_speed=${psu_fan_speed[$f5]}
-	f5=$(($f5*10))
-	f6=$(($set_cur_state*10))
+	f5=$((f5*10))
+	f6=$((set_cur_state*10))
 	log_success_msg "Thermal periodic report"
 	log_success_msg "======================="
 	log_success_msg "Temperature(mC): asic $f1 fan amb $f2 port amb $f3"
 	log_success_msg "Cooling(%): pwm $f6 ps_fan_speed $((ps_fan_speed)) dynaimc_min $dyn"
-	for ((i=1; i<=$max_tachos; i+=1)); do
+	for ((i=1; i<=max_tachos; i+=1)); do
 		if [ -f $thermal_path/fan"$i"_speed_get ]; then
-			tacho=`cat $thermal_path/fan"$i"_speed_get`
-			fault=`cat $thermal_path/fan"$i"_fault`
+			tacho=$(cat $thermal_path/fan"$i"_speed_get)
+			fault=$(cat $thermal_path/fan"$i"_fault)
 			log_success_msg "tacho$i speed is $tacho fault is $fault"
 		fi
 	done
-	for ((i=1; i<=$module_counter; i+=1)); do
+	for ((i=1; i<=module_counter; i+=1)); do
 		if [ -f $thermal_path/temp_input_module"$i" ]; then
-			t1=`cat $thermal_path/temp_input_module"$i"`
+			t1=$(cat $thermal_path/temp_input_module"$i")
 			if [ "$t1" -gt  "0" ]; then
-				t2=`cat $thermal_path/temp_fault_module"$i"`
-				t3=`cat $thermal_path/temp_crit_module"$i"`
-				t4=`cat $thermal_path/temp_emergency_module"$i"`
+				t2=$(cat $thermal_path/temp_fault_module"$i")
+				t3=$(cat $thermal_path/temp_crit_module"$i")
+				t4=$(cat $thermal_path/temp_emergency_module"$i")
 				log_success_msg "module$i temp $t1 fault $t2 crit $t3 emerg $t4"
 			fi
 			if [ -f $thermal_path/mlxsw-module"$i"/thermal_zone_temp ]; then
-				t7=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode`
-				if [ $t7 = "enabled" ]; then
-					t1=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_temp`
-					t2=`cat $thermal_path/mlxsw-module"$i"/temp_trip_norm`
-					t3=`cat $thermal_path/mlxsw-module"$i"/temp_trip_high`
-					t4=`cat $thermal_path/mlxsw-module"$i"/temp_trip_hot`
-					t5=`cat $thermal_path/mlxsw-module"$i"/temp_trip_crit`
-					t6=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_policy`
+				t7=$(cat  $thermal_path/mlxsw-module"$i"/thermal_zone_mode)
+				if [ "$t7" = "enabled" ]; then
+					t1=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_temp)
+					t2=$(cat $thermal_path/mlxsw-module"$i"/temp_trip_norm)
+					t3=$(cat $thermal_path/mlxsw-module"$i"/temp_trip_high)
+					t4=$(cat $thermal_path/mlxsw-module"$i"/temp_trip_hot)
+					t5=$(cat $thermal_path/mlxsw-module"$i"/temp_trip_crit)
+					t6=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_policy)
 					log_success_msg "tz module$i temp $t1 trips $t2 $t3 $t4 $t5 $t6 $t7"
 				fi
 			fi
 		fi
 	done
-	for ((i=1; i<=$gearbox_counter; i+=1)); do
+	for ((i=1; i<=gearbox_counter; i+=1)); do
 		if [ -f $thermal_path/temp_input_gearbox"$i" ]; then
-			t1=`cat $thermal_path/temp_input_gearbox"$i"`
+			t1=$(cat $thermal_path/temp_input_gearbox"$i")
 			if [ "$t1" -gt  "0" ]; then
 				log_success_msg "gearbox$i temp $t1"
 			fi
 			if [ -f $thermal_path/mlxsw-gearbox"$i"/thermal_zone_temp ]; then
-				t7=`cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode`
-				if [ $t7 = "enabled" ]; then
-					t1=`cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_temp`
-					t2=`cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_norm`
-					t3=`cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_high`
-					t4=`cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_hot`
-					t5=`cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_crit`
-					t6=`cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_policy`
+				t7=$(cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode)
+				if [ "$t7" = "enabled" ]; then
+					t1=$(cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_temp)
+					t2=$(cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_norm)
+					t3=$(cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_high)
+					t4=$(cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_hot)
+					t5=$(cat $thermal_path/mlxsw-gearbox"$i"/temp_trip_crit)
+					t6=$(cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_policy)
 					log_success_msg "tz gearbox$i temp $t1 trips $t2 $t3 $t4 $t5 $t6 $t7"
 				fi
 			fi
 		fi
 	done
-	t1=`cat $thermal_path/mlxsw/thermal_zone_temp`
-	t2=`cat $thermal_path/mlxsw/temp_trip_norm`
-	t3=`cat $thermal_path/mlxsw/temp_trip_high`
-	t4=`cat $thermal_path/mlxsw/temp_trip_hot`
-	t5=`cat $thermal_path/mlxsw/temp_trip_crit`
-	t6=`cat $thermal_path/mlxsw/thermal_zone_policy`
-	t7=`cat $thermal_path/mlxsw/thermal_zone_mode`
-	if [ $t7 = "enabled" ]; then
+	t1=$(cat $thermal_path/mlxsw/thermal_zone_temp)
+	t2=$(cat $thermal_path/mlxsw/temp_trip_norm)
+	t3=$(cat $thermal_path/mlxsw/temp_trip_high)
+	t4=$(cat $thermal_path/mlxsw/temp_trip_hot)
+	t5=$(cat $thermal_path/mlxsw/temp_trip_crit)
+	t6=$(cat $thermal_path/mlxsw/thermal_zone_policy)
+	t7=$(cat $thermal_path/mlxsw/thermal_zone_mode)
+	if [ "$t7" = "enabled" ]; then
 		log_success_msg "tz asic temp $t1 trips $t2 $t3 $t4 $t5 $t6 $t7"
 	fi
 }
@@ -451,7 +451,7 @@ config_p2c_dir_trust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		p2c_dir_trust[i]=${array[i]}
 	done
 }
@@ -460,7 +460,7 @@ config_p2c_dir_untrust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		p2c_dir_untrust[i]=${array[i]}
 	done
 }
@@ -469,7 +469,7 @@ config_c2p_dir_trust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		c2p_dir_trust[i]=${array[i]}
 	done
 }
@@ -478,7 +478,7 @@ config_c2p_dir_untrust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		c2p_dir_untrust[i]=${array[i]}
 	done
 }
@@ -487,7 +487,7 @@ config_unk_dir_trust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		unk_dir_trust[i]=${array[i]}
 	done
 }
@@ -496,36 +496,36 @@ config_unk_dir_untrust()
 {
 	array=("$@")
 	size=${#array[@]}
-	for ((i=0; i<$size; i++)); do
+	for ((i=0; i<size; i++)); do
 		unk_dir_untrust[i]=${array[i]}
 	done
 }
 
 get_psu_presence()
 {
-	for ((i=1; i<=$max_psus; i+=1)); do
+	for ((i=1; i<=max_psus; i+=1)); do
 		if [ -f $thermal_path/psu"$i"_status ]; then
-			present=`cat $thermal_path/psu"$i"_status`
-			if [ $present -eq 0 ]; then
+			present=$(cat $thermal_path/psu"$i"_status)
+			if [ "$present" -eq 0 ]; then
 				pwm_required_act=$pwm_max
 				if [ -L $tz_mode ]; then
-					mode=`cat $tz_mode`
+					mode=$(cat $tz_mode)
 					# Disable asic and ports thermal zones if were enabled.
-					if [ $mode = "enabled" ]; then
+					if [ "$mode" = "enabled" ]; then
 						echo disabled > $tz_mode
 						log_action_msg "ASIC thermal zone is disabled due to PS absence"
 					fi
 				fi
-				for ((i=1; i<=$module_counter; i+=1)); do
+				for ((i=1; i<=module_counter; i+=1)); do
 					if [ -L $thermal_path/mlxsw-module"$i"/thermal_zone_mode ]; then
-						mode=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode`
-						if [ $mode = "enabled" ]; then
+						mode=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode)
+						if [ "$mode" = "enabled" ]; then
 							echo disabled > $thermal_path/mlxsw-module"$i"/thermal_zone_mode
 							log_action_msg "QSFP module $i thermal zone is disabled due to PS absence"
 						fi
 					fi
 				done
-				echo $pwm_max_rpm > $pwm
+				echo $pwm_max_rpm > "$pwm"
 
 				return
 			fi
@@ -537,16 +537,16 @@ get_psu_presence()
 
 update_psu_fan_speed()
 {
-	for ((i=1; i<=$max_psus; i+=1)); do
+	for ((i=1; i<=max_psus; i+=1)); do
 		if [ -L $thermal_path/psu"$i"_pwr_status ]; then
-			pwr=`cat $thermal_path/psu"$i"_pwr_status`
-			if [ $pwr -eq 1 ]; then
-				bus=`cat $config_path/psu"$i"_i2c_bus`
-				addr=`cat $config_path/psu"$i"_i2c_addr`
-				command=`cat $fan_command`
-				entry=`cat $thermal_path/cooling_cur_state`
+			pwr=$(cat $thermal_path/psu"$i"_pwr_status)
+			if [ "$pwr" -eq 1 ]; then
+				bus=$(cat $config_path/psu"$i"_i2c_bus)
+				addr=$(cat $config_path/psu"$i"_i2c_addr)
+				command=$(cat $fan_command)
+				entry=$(cat $thermal_path/cooling_cur_state)
 				speed=${psu_fan_speed[$entry]}
-				i2cset -f -y $bus $addr $command $speed wp
+				i2cset -f -y "$bus" "$addr" "$command" "$speed" wp
 			fi
 		fi
 	done
@@ -554,30 +554,30 @@ update_psu_fan_speed()
 
 get_fan_faults()
 {
-	for ((i=1; i<=$max_tachos; i+=1)); do
+	for ((i=1; i<=max_tachos; i+=1)); do
 		if [ -L $thermal_path/fan"$i"_fault ]; then
-			fault=`cat $thermal_path/fan"$i"_fault`
+			fault=$(cat $thermal_path/fan"$i"_fault)
 		fi
-		speed=`cat $thermal_path/fan"$i"_speed_get`
+		speed=$(cat $thermal_path/fan"$i"_speed_get)
 
-		if [ $fault -eq 1 ] || [ $speed -eq 0 ] ; then
-			pwm_required_act=$pwm_max
-			mode=`cat $tz_mode`
+		if [ "$fault" -eq 1 ] || [ "$speed" -eq 0 ] ; then
+			pwm_required_act="$pwm_max"
+			mode=$(cat "$tz_mode")
 			# Disable asic and modules thermal zones if were enabled.
-			if [ $mode = "enabled" ]; then
+			if [ "$mode" = "enabled" ]; then
 				echo disabled > $tz_mode
 				log_action_msg "ASIC thermal zone is disabled due to FAN fault"
 			fi
-			for ((i=1; i<=$module_counter; i+=1)); do
+			for ((i=1; i<=module_counter; i+=1)); do
 				if [ -f $thermal_path/mlxsw-module"$i"/thermal_zone_mode ]; then
-					mode=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode`
-					if [ $mode = "enabled" ]; then
+					mode=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode)
+					if [ "$mode" = "enabled" ]; then
 						echo disabled > $thermal_path/mlxsw-module"$i"/thermal_zone_mode
 						log_action_msg "QSFP module $i thermal zone is disabled due to FAN fault"
 					fi
 				fi
 			done
-			echo $pwm_max_rpm > $pwm
+			echo $pwm_max_rpm > "$pwm"
 
 			return
 		fi
@@ -598,12 +598,12 @@ set_pwm_min_threshold()
 	check_untrested_module_sensor
 
 	# Define FAN direction
-	temp_fan_ambient=`cat $temp_fan_amb`
-	temp_port_ambient=`cat $temp_port_amb`
-	if [ $temp_fan_ambient -gt  $temp_port_ambient ]; then
+	temp_fan_ambient=$(cat $temp_fan_amb)
+	temp_port_ambient=$(cat $temp_port_amb)
+	if [ "$temp_fan_ambient" -gt "$temp_port_ambient" ]; then
 		ambient=$temp_port_ambient
 		p2c_dir=1
-	elif [ $temp_fan_ambient -lt  $temp_port_ambient ]; then
+	elif [ "$temp_fan_ambient" -lt  "$temp_port_ambient" ]; then
 		ambient=$temp_fan_ambient
 		c2p_dir=1
 	else
@@ -613,31 +613,31 @@ set_pwm_min_threshold()
 
 	# Set FAN minimum speed according to FAN direction, cable type and
 	# presence of untrusted cabels.
-	if [ $untrusted_sensor -eq 0 ]; then
-		if [ $p2c_dir -eq 1 ]; then
+	if [ "$untrusted_sensor" -eq 0 ]; then
+		if [ "$p2c_dir" -eq 1 ]; then
 			size=${#p2c_dir_trust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${p2c_dir_trust[i]}
-				if [ $ambient -lt $tresh ]; then
-					fan_dynamic_min=${p2c_dir_trust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${p2c_dir_trust[$((i+1))]}
 					break
 				fi
 			done
-		elif [ $c2p_dir -eq 1 ]; then
+		elif [ "$c2p_dir" -eq 1 ]; then
 			size=${#c2p_dir_trust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${c2p_dir_trust[i]}
-				if [ $ambient -lt $tresh ]; then
-					fan_dynamic_min=${c2p_dir_trust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${c2p_dir_trust[$((i+1))]}
 					break
 				fi
 			done
 		else
 			size=${#unk_dir_trust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${unk_dir_trust[i]}
-				if [ $ambient -lt $tresh]; then
-					fan_dynamic_min=${unk_dir_trust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${unk_dir_trust[$((i+1))]}
 					break
 				fi
 			done
@@ -645,28 +645,28 @@ set_pwm_min_threshold()
 	else
 		if [ $p2c_dir -eq 1 ]; then
 			size=${#p2c_dir_untrust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${unk_dir_untrust[i]}
-				if [ $ambient -lt $tresh ]; then
-					fan_dynamic_min=${unk_dir_untrust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${unk_dir_untrust[$((i+1))]}
 					break
 				fi
 			done
 		elif [ $c2p_dir -eq 1 ]; then
 			size=${#c2p_dir_untrust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${c2p_dir_untrust[i]}
-				if [ $ambient -lt $tresh ]; then
-					fan_dynamic_min=${c2p_dir_untrust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${c2p_dir_untrust[$((i+1))]}
 					break
 				fi
 			done
 		else
 			size=${#unk_dir_untrust[@]}
-			for ((i=0; i<$size; i+=2)); do
+			for ((i=0; i<size; i+=2)); do
 				tresh=${unk_dir_untrust[i]}
-				if [ $ambient -lt $tresh ]; then
-					fan_dynamic_min=${unk_dir_untrust[$(($i+1))]}
+				if [ "$ambient" -lt "$tresh" ]; then
+					fan_dynamic_min=${unk_dir_untrust[$((i+1))]}
 					break
 				fi
 			done
@@ -732,7 +732,7 @@ init_system_dynamic_minimum_db()
 		config_unk_dir_untrust "${unk_dir_untrust_t5[@]}"
 		;;
 	*)
-		echo thermal type $system_thermal_type is not supported
+		echo thermal type "$system_thermal_type" is not supported
 		exit 0
 		;;
 	esac
@@ -787,7 +787,7 @@ init_fan_dynamic_minimum_speed()
 		config_untrust=$untrust5
 		;;
 	*)
-		echo thermal type $system_thermal_type is not supported
+		echo thermal type "$system_thermal_type" is not supported
 		exit 0
 		;;
 	esac
@@ -807,22 +807,22 @@ thermal_control_exit()
 check_trip_min_vs_current_temp()
 {
 
-	for ((i=1; i<=$module_counter; i+=1)); do
+	for ((i=1; i<=module_counter; i+=1)); do
 		if [ -f $thermal_path/mlxsw-module"$i"/thermal_zone_temp ]; then
-			trip_norm=`cat $thermal_path/mlxsw-module"$i"/temp_trip_norm`
-			temp_now=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_temp`
-			if [ $temp_now -gt 0 ] && [ $trip_norm -le  $temp_now ]; then
+			trip_norm=$(cat $thermal_path/mlxsw-module"$i"/temp_trip_norm)
+			temp_now=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_temp)
+			if [ "$temp_now" -gt 0 ] && [ "$trip_norm" -le  "$temp_now" ]; then
 				return
 			fi
 		fi
 	done
 
-	trip_norm=`cat $temp_trip_norm`
-	temp_now=`cat $tz_temp`
-	if [ $trip_norm -gt  $temp_now ]; then
-		set_cur_state=$(($fan_dynamic_min-$fan_max_state))
-		echo $set_cur_state > $cooling_cur_state
-		cur_state=$(($set_cur_state*10))
+	trip_norm=$(cat $temp_trip_norm)
+	temp_now=$(cat $tz_temp)
+	if [ "$trip_norm" -gt  "$temp_now" ]; then
+		set_cur_state=$((fan_dynamic_min-fan_max_state))
+		echo $set_cur_state > "$cooling_cur_state"
+		cur_state=$((set_cur_state*10))
 		case $1 in
 		1)
 			log_action_msg "FAN speed is set to $cur_state percent due to thermal zone event"
@@ -866,39 +866,39 @@ trap 'thermal_down_event' USR1
 # Initialization during start up.
 thermal_control_pid=$$
 if [ -f /var/run/hw-management.pid ]; then
-	zone1=`cat /var/run/hw-management.pid`
+	zone1=$(cat /var/run/hw-management.pid)
 	# Only one instance of thermal control could be activated
-	if [ -d /proc/$zone1 ]; then
+	if [ -d /proc/"$zone1" ]; then
 		log_warning_msg "Mellanox thermal control is already running."
 		exit 0
 	fi
 fi
 
-[ -f $config_path/thermal_delay ] && thermal_delay=`cat $config_path/thermal_delay`; [ $thermal_delay ] && sleep $thermal_delay;
+[ -f $config_path/thermal_delay ] && thermal_delay=$(cat $config_path/thermal_delay); [ "$thermal_delay" ] && sleep "$thermal_delay";
 
 disable_zones_def_pwm()
 {
 	if [ -L $tz_mode ]; then
-		mode=`cat $tz_mode`
+		mode=$(cat $tz_mode)
 		# Disable asic and modules thermal zones if were enabled.
-		if [ $mode = "enabled" ]; then
+		if [ "$mode" = "enabled" ]; then
 			echo disabled > $tz_mode
 			log_action_msg "ASIC thermal zone is disabled due to thermal algorithm is suspend"
 		fi
 	fi
-	for ((i=1; i<=$module_counter; i+=1)); do
+	for ((i=1; i<=module_counter; i+=1)); do
 		if [ -f $thermal_path/mlxsw-module"$i"/thermal_zone_mode ]; then
-			mode=`cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode`
-			if [ $mode = "enabled" ]; then
+			mode=$(cat $thermal_path/mlxsw-module"$i"/thermal_zone_mode)
+			if [ "$mode" = "enabled" ]; then
 				echo disabled > $thermal_path/mlxsw-module"$i"/thermal_zone_mode
 				log_action_msg "QSFP module $i thermal zone is disabled due to thermal algorithm is suspend"
 			fi
 		fi
 	done
-	for ((i=1; i<=$gearbox_counter; i+=1)); do
+	for ((i=1; i<=gearbox_counter; i+=1)); do
 		if [ -f $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode ]; then
-			mode=`cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode`
-			if [ $mode = "enabled" ]; then
+			mode=$(cat $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode)
+			if [ "$mode" = "enabled" ]; then
 				echo disabled > $thermal_path/mlxsw-gearbox"$i"/thermal_zone_mode
 				log_action_msg "Gearbox $i thermal zone is disabled due to thermal algorithm is suspend"
 			fi
@@ -917,7 +917,7 @@ init_tz_highest()
 {
 	if [ ! -L $thermal_path/highest_thermal_zone ]; then
 		ln -sf $thermal_path/mlxsw $thermal_path/highest_thermal_zone
-		tzname=`basename "$(readlink -f $thermal_path/highest_thermal_zone)"`
+		tzname=$(basename "$(readlink -f $thermal_path/highest_thermal_zone)")
 		highest_tz=$tzname
 		echo 0 > $thermal_path/highest_tz_num
 		echo 0 > $thermal_path/highest_score
@@ -926,8 +926,8 @@ init_tz_highest()
 
 tz_check_suspend()
 (
-	[ -f "$config_path/suspend" ] && suspend=`cat $config_path/suspend`
-	if [ $suspend ] &&  [ "$suspend" = "1" ]; then
+	[ -f "$config_path/suspend" ] && suspend=$(cat $config_path/suspend)
+	if [ "$suspend" ] &&  [ "$suspend" = "1" ]; then
 		return 1
 	fi
 	exit 0
@@ -935,8 +935,8 @@ tz_check_suspend()
 
 tz_score_calculate()
 {
-	delta=`expr '(' '(' $2 - $1 ')' / 2 ')' / $2 + $1`
-	score=`expr $delta + $shift`
+	delta=$(expr '(' '(' "$2" - "$1" ')' / 2 ')' / "$2" + "$1")
+	score=$(expr "$delta" + "$shift")
 }
 
 get_tz_asic_score()
@@ -949,17 +949,16 @@ get_tz_asic_score()
 		exit
 	fi
 
-	temp_curr=`cat $tz_temp`
-	v1=`echo $temp_curr`
-	v1=$(($v1/1000))
-	for ((t=0; t<$trip_points_num; t++)); do
-		v2=`echo ${tz_asic_trips[t]}`
+	v1=temp_curr=$(cat "$tz_temp")
+	v1=$((v1/1000))
+	for ((t=0; t<trip_points_num; t++)); do
+		v2="${tz_asic_trips[t]}"
 		if [ "$v1" -lt "$v2" ]; then
-			tz_score_calculate $v1 $v2
+			tz_score_calculate "$v1" "$v2"
 			max_score=$score
 			break
 		fi
-		shift=$(($shift*256))
+		shift=$((shift*256))
 	done
 }
 
@@ -973,16 +972,16 @@ get_tz_module_score()
 		exit
 	fi
 
-	temp_curr=`cat $thermal_path/mlxsw-module"$1"/thermal_zone_temp`
-	v1=`echo $temp_curr`
-	v1=$(($v1/1000))
-	for ((t=0; t<$trip_points_num; t++)); do
-		v2=`echo ${tz_module_trips[t]}`
+	temp_curr=$(cat $thermal_path/mlxsw-module"$1"/thermal_zone_temp)
+	v1="$temp_curr"
+	v1=$((v1/1000))
+	for ((t=0; t<trip_points_num; t++)); do
+		v2="${tz_module_trips[t]}"
 		if [ "$v1" -lt "$v2" ]; then
-			tz_score_calculate $v1 $v2
+			tz_score_calculate "$v1" "$v2"
 			break
 		fi
-		shift=$(($shift*256))
+		shift=$((shift*256))
 	done
 }
 
@@ -996,16 +995,16 @@ get_tz_gearbox_score()
 		exit
 	fi
 
-	temp_curr=`cat $thermal_path/mlxsw-gearbox"$1"/thermal_zone_temp`
-	v1=`echo $temp_curr`
-	v1=$(($v1/1000))
-	for ((t=0; t<$trip_points_num; t++)); do
-		v2=`echo ${tz_gearbox_trips[t]}`
+	temp_curr=$(cat $thermal_path/mlxsw-gearbox"$1"/thermal_zone_temp)
+	v1="$temp_curr"
+	v1=$((v1/1000))
+	for ((t=0; t<trip_points_num; t++)); do
+		v2="${tz_gearbox_trips[t]}"
 		if [ "$v1" -lt "$v2" ]; then
-			tz_score_calculate $v1 $v2
+			tz_score_calculate "$v1" "$v2"
 			break
 		fi
-		shift=$(($shift*256))
+		shift=$((shift*256))
 	done
 }
 
@@ -1013,9 +1012,9 @@ get_tz_highest()
 {
 	score=0
 	max_tz=0
-	max_score=`cat $thermal_path/highest_score`
+	max_score=$(cat $thermal_path/highest_score)
 	get_tz_asic_score
-	for ((p=1; p<=$module_counter; p+=1)); do
+	for ((p=1; p<=module_counter; p+=1)); do
 		if [ -L $thermal_path/mlxsw-module"$p"/thermal_zone_temp ]; then
 
 			tz_check_suspend
@@ -1031,7 +1030,7 @@ get_tz_highest()
 			fi
 		fi
 	done
-	for ((p=1; p<=$gearbox_counter; p+=1)); do
+	for ((p=1; p<=gearbox_counter; p+=1)); do
 		if [ -L $thermal_path/mlxsw-gearbox"$p"/thermal_zone_temp ]; then
 
 			tz_check_suspend
@@ -1042,16 +1041,16 @@ get_tz_highest()
 			get_tz_gearbox_score $p
 			if [ "$score" -gt "$max_score" ]; then
 				max_score=$score
-				max_tz=$(($p+$module_counter))
+				max_tz=$(("$p"+"$module_counter"))
 				echo $max_score > $thermal_path/highest_score
 			fi
 		fi
 	done
 
-	highest_tz_num=`cat $thermal_path/highest_tz_num`
+	highest_tz_num=$(cat $thermal_path/highest_tz_num)
 	if [ "$max_tz" != "$highest_tz_num" ]; then
 		if [ -L $thermal_path/highest_thermal_zone ]; then
-			tzname=`basename "$(readlink -f $thermal_path/highest_thermal_zone)"`
+			tzname=$(basename "$(readlink -f $thermal_path/highest_thermal_zone)")
 			echo user_space > $thermal_path/highest_thermal_zone/thermal_zone_policy
 			echo disabled > $thermal_path/highest_thermal_zone/thermal_zone_mode
 			log_action_msg "Thermal zone $tzname: mode disabled, policy user_space"
@@ -1059,7 +1058,7 @@ get_tz_highest()
 		fi
 		if [ "$max_tz" != "0" ]; then
 			if [ "$max_tz" -gt "$module_counter" ]; then
-				gearbox_tz=$(($max_tz-$module_counter))
+				gearbox_tz=$(("$max_tz"-"$module_counter"))
 				ln -sf $thermal_path/mlxsw-gearbox"$gearbox_tz" $thermal_path/highest_thermal_zone
 			else
 				ln -sf $thermal_path/mlxsw-module"$max_tz" $thermal_path/highest_thermal_zone
@@ -1077,7 +1076,7 @@ get_tz_highest()
 
 		echo step_wise > $thermal_path/highest_thermal_zone/thermal_zone_policy
 		echo enabled > $thermal_path/highest_thermal_zone/thermal_zone_mode
-		tzname=`basename "$(readlink -f $thermal_path/highest_thermal_zone)"`
+		tzname=$(basename "$(readlink -f $thermal_path/highest_thermal_zone)")
 		highest_tz=$tzname
 		log_action_msg "Thermal zone $highest_tz: mode enabled, policy step_wise"
 	fi
@@ -1087,17 +1086,17 @@ get_tz_highest()
 	if [ ! -L $thermal_path/highest_thermal_zone ]; then
 		init_tz_highest
 	fi
-	temp_now=`cat $thermal_path/highest_thermal_zone/thermal_zone_temp`
-	trip_high=`cat $thermal_path/highest_thermal_zone/temp_trip_high`
-	trip_high=$(($trip_high-$hysteresis))
-	if [ $trip_high -gt  $temp_now ]; then
-		cooling=`cat $thermal_path/cooling_cur_state`
-		set_cur_state=$(($fan_dynamic_min-$fan_max_state))
-		if [ $cooling -gt $set_cur_state ]; then
+	temp_now=$(cat $thermal_path/highest_thermal_zone/thermal_zone_temp)
+	trip_high=$(cat $thermal_path/highest_thermal_zone/temp_trip_high)
+	trip_high=$((trip_high-hysteresis))
+	if [ "$trip_high" -gt "$temp_now" ]; then
+		cooling=$(cat $thermal_path/cooling_cur_state)
+		set_cur_state=$((fan_dynamic_min-fan_max_state))
+		if [ "$cooling" -gt "$set_cur_state" ]; then
 			echo disabled > $thermal_path/highest_thermal_zone/thermal_zone_mode
 			echo $set_cur_state > $cooling_cur_state
 			echo enabled > $thermal_path/highest_thermal_zone/thermal_zone_mode
-			cur_state=$(($set_cur_state*10))
+			cur_state=$((set_cur_state*10))
 			log_action_msg "FAN speed is set to $cur_state percent"
 		fi
 	fi
@@ -1109,14 +1108,14 @@ get_tz_highest()
 init_system_dynamic_minimum_db
 init_fan_dynamic_minimum_speed
 
-module_counter=`cat $config_path/module_counter`
-gearbox_counter=`cat $config_path/gearbox_counter`
+[ -r $config_path/module_counter ] && module_counter=$(cat $config_path/module_counter)
+[ -r $config_path/gearbox_counter ] && gearbox_counter=$(cat $config_path/gearbox_counter)
 
 echo $thermal_control_pid > /var/run/hw-management.pid
 log_action_msg "Mellanox thermal control is started"
 
 # Periodic report counter
-periodic_report=$(($polling_time*$report_counter))
+periodic_report=$((polling_time*report_counter))
 periodic_report=12	# For debug - remove after tsting
 count=0
 suspend_thermal=0;
@@ -1124,11 +1123,11 @@ init_tz_highest
 # Start thermal monitoring.
 while true
 do
-	/bin/sleep $polling_time
+	/bin/sleep "$polling_time"
 
 	# Check if thermal is suspended
-	[ -f "$config_path/suspend" ] && suspend=`cat $config_path/suspend`
-	if [ $suspend ] && [ "$suspend" != "$suspend_thermal" ]; then
+	[ -f "$config_path/suspend" ] && suspend=$(cat $config_path/suspend)
+	if [ "$suspend" ] && [ "$suspend" != "$suspend_thermal" ]; then
 		if [ "$suspend" = "1" ]; then
 			disable_zones_def_pwm
 			init_tz_highest
@@ -1144,7 +1143,7 @@ do
 		if [ "$suspend_thermal" = "1" ]; then
 			# Validate there is no enabled thermal zones.
 			if [ -L $pwm ]; then
-				cur_pwm=`cat $pwm`
+				cur_pwm=$(cat $pwm)
 				if [ "$cur_pwm" != "$pwm_def_rpm" ]; then
 					disable_zones_def_pwm
 				fi
@@ -1181,20 +1180,20 @@ do
 	fi
 	# Update cooling levels of FAN If dynamic minimum has been changed
 	# since the last time.
-	if [ $fan_dynamic_min -ne $fan_dynamic_min_last ]; then
-		echo $fan_dynamic_min > $cooling_cur_state
-		fan_from=$(($fan_dynamic_min_last-$fan_max_state))
-		fan_from=$(($fan_from*10))
-		fan_to=$(($fan_dynamic_min-$fan_max_state))
-		fan_to=$(($fan_to*10))
+	if [ "$fan_dynamic_min" -ne "$fan_dynamic_min_last" ]; then
+		echo "$fan_dynamic_min" > "$cooling_cur_state"
+		fan_from=$((fan_dynamic_min_last-fan_max_state))
+		fan_from=$((fan_from*10))
+		fan_to=$((fan_dynamic_min-fan_max_state))
+		fan_to=$((fan_to*10))
 		log_action_msg "FAN minimum speed is changed from $fan_from to $fan_to percent"
 		fan_dynamic_min_last=$fan_dynamic_min
 		echo $fan_to > $thermal_path/fan_dynamic_min
 	fi
 	# Enable ASIC thermal zone if it has been disabled before.
-	mode=`cat $tz_mode`
-	highest_tz_num=`cat $thermal_path/highest_tz_num`
-	if [ $mode = "disabled" ] && [ $highest_tz_num = "0" ]; then
+	mode=$(cat $tz_mode)
+	highest_tz_num=$(cat $thermal_path/highest_tz_num)
+	if [ "$mode" = "disabled" ] && [ "$highest_tz_num" = "0" ]; then
 		echo enabled > $tz_mode
 		log_action_msg "ASIC thermal zone is re-enabled"
 		# System health (PS units or FANs) has been recovered. Set PWM
@@ -1205,8 +1204,8 @@ do
 
 	get_tz_highest
 
-	count=$(($count+1))
-	if [ $count -eq $periodic_report ]; then
+	count=$((count+1))
+	if [ $count -eq "$periodic_report" ]; then
 		count=0
 		thermal_periodic_report
 	fi

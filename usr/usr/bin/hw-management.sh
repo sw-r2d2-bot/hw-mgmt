@@ -241,11 +241,11 @@ is_module()
 msn274x_specific()
 {
 	connect_size=${#msn2740_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn2740_connect_table[i]}
 	done
 	disconnect_size=${#msn2740_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn2740_dis_table[i]}
 	done
 
@@ -260,11 +260,11 @@ msn274x_specific()
 msn21xx_specific()
 {
 	connect_size=${#msn2100_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn2100_connect_table[i]}
 	done
 	disconnect_size=${#msn2100_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn2100_dis_table[i]}
 	done
 
@@ -280,11 +280,11 @@ msn21xx_specific()
 msn24xx_specific()
 {
 	connect_size=${#msn2700_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn2700_connect_table[i]}
 	done
 	disconnect_size=${#msn2700_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn2700_dis_table[i]}
 	done
 
@@ -299,11 +299,11 @@ msn24xx_specific()
 msn27xx_msb_msx_specific()
 {
 	connect_size=${#msn2700_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn2700_connect_table[i]}
 	done
 	disconnect_size=${#msn2700_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn2700_dis_table[i]}
 	done
 
@@ -318,11 +318,11 @@ msn27xx_msb_msx_specific()
 msn201x_specific()
 {
 	connect_size=${#msn2010_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn2010_connect_table[i]}
 	done
 	disconnect_size=${#msn2010_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn2010_dis_table[i]}
 	done
 
@@ -338,11 +338,11 @@ msn201x_specific()
 mqmxxx_msn37x_msn34x_specific()
 {
 	connect_size=${#mqm8700_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${mqm8700_connect_table[i]}
 	done
 	disconnect_size=${#mqm8700_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${mqm8700_dis_table[i]}
 	done
 
@@ -357,11 +357,11 @@ mqmxxx_msn37x_msn34x_specific()
 msn38xx_specific()
 {
 	connect_size=${#msn3800_connect_table[@]}
-	for ((i=0; i<$connect_size; i++)); do
+	for ((i=0; i<connect_size; i++)); do
 		connect_table[i]=${msn3800_connect_table[i]}
 	done
 	disconnect_size=${#msn3800_dis_table[@]}
-	for ((i=0; i<$disconnect_size; i++)); do
+	for ((i=0; i<disconnect_size; i++)); do
 		dis_table[i]=${msn3800_dis_table[i]}
 	done
 
@@ -375,9 +375,9 @@ msn38xx_specific()
 
 check_system()
 {
-	manufacturer=`cat /sys/devices/virtual/dmi/id/sys_vendor | awk '{print $1}'`
+	manufacturer=$(awk '{print $1}' /sys/devices/virtual/dmi/id/sys_vendor)
 	if [ "$manufacturer" = "Mellanox" ]; then
-		product=`cat /sys/devices/virtual/dmi/id/product_name`
+		product=$(cat /sys/devices/virtual/dmi/id/product_name)
 		case $product in
 			MSN274*)
 				msn274x_specific
@@ -401,7 +401,7 @@ check_system()
 				msn38xx_specific
 				;;
 			*)
-				proc_type=`cat /proc/cpuinfo | grep 'model name' | uniq  | awk '{print $5}'`
+				proc_type=$(< /proc/cpuinfo grep 'model name' | uniq  | awk '{print $5}')
 				case $proc_type in
 					Atom*)
 						msn21xx_specific
@@ -420,7 +420,7 @@ check_system()
 		esac
 	else
 		# Check ODM
-		board=`cat /sys/devices/virtual/dmi/id/board_name`
+		board=$(cat /sys/devices/virtual/dmi/id/board_name)
 		case $board in
 			VMOD0001)
 				msn27xx_msb_msx_specific
@@ -446,7 +446,8 @@ check_system()
 		esac
 	fi
 
-	kernel_release=`uname -r`
+	kernel_release=$(uname -r)
+	export kernel_release
 }
 
 find_i2c_bus()
@@ -454,12 +455,12 @@ find_i2c_bus()
 	# Find physical bus number of Mellanox I2C controller. The default
 	# number is 1, but it could be assigned to others id numbers on
 	# systems with different CPU types.
-	for ((i=1; i<$i2c_bus_max; i++)); do
+	for ((i=1; i<i2c_bus_max; i++)); do
 		folder=/sys/bus/i2c/devices/i2c-$i
 		if [ -d $folder ]; then
-			name=`cat $folder/name | cut -d' ' -f 1`
+			name=$(< $folder/name cut -d' ' -f 1)
 			if [ "$name" == "i2c-mlxcpld" ]; then
-				i2c_bus_offset=$(($i-1))
+				i2c_bus_offset=$((i-1))
 				return
 			fi
 		fi
@@ -471,12 +472,12 @@ find_i2c_bus()
 
 connect_device()
 {
-	if [ -f /sys/bus/i2c/devices/i2c-$3/new_device ]; then
-		addr=`echo $2 | tail -c +3`
-		bus=$(($3+$i2c_bus_offset))
-		if [ ! -d /sys/bus/i2c/devices/$bus-00$addr ] &&
-		   [ ! -d /sys/bus/i2c/devices/$bus-000$addr ]; then
-			echo $1 $2 > /sys/bus/i2c/devices/i2c-$bus/new_device
+	if [ -f /sys/bus/i2c/devices/i2c-"$3"/new_device ]; then
+		addr=$(echo "$2" | tail -c +3)
+		bus=$(($3+i2c_bus_offset))
+		if [ ! -d /sys/bus/i2c/devices/$bus-00"$addr" ] &&
+		   [ ! -d /sys/bus/i2c/devices/$bus-000"$addr" ]; then
+			echo "$1" "$2" > /sys/bus/i2c/devices/i2c-$bus/new_device
 		fi
 	fi
 
@@ -485,12 +486,12 @@ connect_device()
 
 disconnect_device()
 {
-	if [ -f /sys/bus/i2c/devices/i2c-$2/delete_device ]; then
-		addr=`echo $1 | tail -c +3`
-		bus=$(($2+$i2c_bus_offset))
-		if [ -d /sys/bus/i2c/devices/$bus-00$addr ] ||
-		   [ -d /sys/bus/i2c/devices/$bus-000$addr ]; then
-			echo $1 > /sys/bus/i2c/devices/i2c-$bus/delete_device
+	if [ -f /sys/bus/i2c/devices/i2c-"$2"/delete_device ]; then
+		addr=$(echo "$1" | tail -c +3)
+		bus=$(("$2"+i2c_bus_offset))
+		if [ -d /sys/bus/i2c/devices/$bus-00"$addr" ] ||
+		   [ -d /sys/bus/i2c/devices/$bus-000"$addr" ]; then
+			echo "$1" > /sys/bus/i2c/devices/i2c-$bus/delete_device
 		fi
 	fi
 
@@ -499,16 +500,16 @@ disconnect_device()
 
 connect_platform()
 {
-	for ((i=0; i<$connect_size; i+=3)); do
-		connect_device 	${connect_table[i]} ${connect_table[i+1]} \
-				${connect_table[i+2]}
+	for ((i=0; i<connect_size; i+=3)); do
+		connect_device 	"${connect_table[i]}" "${connect_table[i+1]}" \
+				"${connect_table[i+2]}"
 	done
 }
 
 disconnect_platform()
 {
-	for ((i=0; i<$disconnect_size; i+=2)); do
-		disconnect_device ${dis_table[i]} ${dis_table[i+1]}
+	for ((i=0; i<disconnect_size; i+=2)); do
+		disconnect_device "${dis_table[i]}" "${dis_table[i+1]}"
 	done
 }
 
@@ -578,7 +579,7 @@ do_start()
 	echo 0 > $config_path/chipup_delay
 	echo 0 > $config_path/chipdown_delay
 	find_i2c_bus
-	asic_bus=$(($i2c_asic_bus_default+$i2c_bus_offset))
+	asic_bus=$((i2c_asic_bus_default+i2c_bus_offset))
 	echo $asic_bus > $config_path/asic_bus
 	connect_platform
 
@@ -589,9 +590,9 @@ do_stop()
 {
 	# Kill thermal control if running.
 	if [ -f $PID ]; then
-		pid=`cat $PID`
-		if [ -d /proc/$pid ]; then
-			kill $pid
+		pid=$(cat $PID)
+		if [ -d /proc/"$pid" ]; then
+			kill "$pid"
 		fi
 	fi
 
@@ -603,8 +604,8 @@ do_stop()
 function lock_service_state_change()
 {
 	exec {LOCKFD}>${LOCKFILE}
-	/usr/bin/flock -x ${LOCKFD}
-	trap "/usr/bin/flock -u ${LOCKFD}" EXIT SIGINT SIGQUIT SIGTERM
+	/usr/bin/flock -x "${LOCKFD}"
+	trap '/usr/bin/flock -u "${LOCKFD}"' EXIT SIGINT SIGQUIT SIGTERM
 }
 
 function unlock_service_state_change()
@@ -615,32 +616,32 @@ function unlock_service_state_change()
 do_chip_up_down()
 {
 	# Add ASIC device.
-	bus=`cat $config_path/asic_bus`
+	bus=$(cat $config_path/asic_bus)
 
 	case $1 in
 	0)
 		lock_service_state_change
 		echo 1 > $config_path/suspend
-		if [ -d /sys/bus/i2c/devices/$bus-$i2c_asic_addr_name ]; then
-			delay=`cat $config_path/chipdown_delay`
-			sleep $delay
-			echo $i2c_asic_addr > /sys/bus/i2c/devices/i2c-$bus/delete_device
+		if [ -d /sys/bus/i2c/devices/"$bus-$i2c_asic_addr_name" ]; then
+			delay=$(cat $config_path/chipdown_delay)
+			sleep "$delay"
+			echo $i2c_asic_addr > /sys/bus/i2c/devices/i2c-"$bus"/delete_device
 		fi
 		unlock_service_state_change
 		;;
 	1)
 		lock_service_state_change
-		[ -f "$config_path/chipup_dis" ] && disable=`cat $config_path/chipup_dis`
-		if [ $disable ] && [ "$disable" -gt 0 ]; then
-			disable=$(($disable-1))
+		[ -f "$config_path/chipup_dis" ] && disable=$(cat $config_path/chipup_dis)
+		if [ "$disable" ] && [ "$disable" -gt 0 ]; then
+			disable=$((disable-1))
 			echo $disable > $config_path/chipup_dis
 			unlock_service_state_change
 			exit 0
 		fi
-		if [ ! -d /sys/bus/i2c/devices/$bus-$i2c_asic_addr_name ]; then
-			delay=`cat $config_path/chipup_delay`
-			sleep $delay
-			echo mlxsw_minimal $i2c_asic_addr > /sys/bus/i2c/devices/i2c-$bus/new_device
+		if [ ! -d /sys/bus/i2c/devices/"$bus-$i2c_asic_addr_name" ]; then
+			delay=$(cat $config_path/chipup_delay)
+			sleep "$delay"
+			echo mlxsw_minimal $i2c_asic_addr > /sys/bus/i2c/devices/i2c-"$bus"/new_device
 		fi
 		case $2 in
 		1)
@@ -672,7 +673,7 @@ case $ACTION in
 		do_stop
 	;;
 	chipup)
-		do_chip_up_down 1 $2
+		do_chip_up_down 1 "$2"
 	;;
 	chipdown)
 		do_chip_up_down 0
@@ -684,14 +685,14 @@ case $ACTION in
 		if [ -z "$2" ]; then
 			echo 1 > $config_path/chipup_dis
 		else
-			echo $2 > $config_path/chipup_dis
+			echo "$2" > $config_path/chipup_dis
 		fi
 	;;
 	thermsuspend)
-		echo 1 > $config_path/suspend
+		echo 1 > "$config_path"/suspend
 	;;
 	thermresume)
-		echo 0 > $config_path/suspend
+		echo 0 > "$config_path"/suspend
 	;;
 	restart|force-reload)
 		do_stop
@@ -699,7 +700,7 @@ case $ACTION in
 		do_start
 	;;
 	*)
-		echo "Usage: `basename $0` {start|stop}"
+		echo "Usage: $(basename "$0") {start|stop}"
 		exit 1
 	;;
 esac
