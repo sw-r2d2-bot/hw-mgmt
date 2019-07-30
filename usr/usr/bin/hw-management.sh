@@ -95,6 +95,10 @@ THERMAL_CONTROL=/usr/bin/hw-management-thermal-control.sh
 PID=/var/run/hw-management.pid
 LOCKFILE="/var/run/hw-management.lock"
 
+use_syslog=1
+
+thermal_svc=/usr/bin/hw-management-thermal-control.py
+
 # Topology description and driver specification for ambient sensors and for
 # ASIC I2C driver per system class. Specific system class is obtained from DMI
 # tables.
@@ -581,8 +585,8 @@ do_start()
 	asic_bus=$(($i2c_asic_bus_default+$i2c_bus_offset))
 	echo $asic_bus > $config_path/asic_bus
 	connect_platform
-
-	$THERMAL_CONTROL $thermal_type $max_tachos $max_psus&
+	
+	echo  -c=$thermal_type -t=$max_tachos -p=$max_psus -s=$use_syslog> /var/run/hw-management/config/thermal_config	
 }
 
 do_stop()
@@ -620,7 +624,8 @@ do_chip_up_down()
 	case $1 in
 	0)
 		lock_service_state_change
-		echo 1 > $config_path/suspend
+		$thermal_svc suspend
+		#echo 1 > $config_path/suspend
 		if [ -d /sys/bus/i2c/devices/$bus-$i2c_asic_addr_name ]; then
 			delay=`cat $config_path/chipdown_delay`
 			sleep $delay
@@ -644,10 +649,12 @@ do_chip_up_down()
 		fi
 		case $2 in
 		1)
-			echo 0 > $config_path/suspend
+			$thermal_svc suspend
+			#echo 0 > $config_path/suspend
 			;;
 		*)
-			echo 1 > $config_path/suspend
+			$thermal_svc suspend
+			#echo 1 > $config_path/suspend
 			;;
 		esac
 		unlock_service_state_change
@@ -688,10 +695,12 @@ case $ACTION in
 		fi
 	;;
 	thermsuspend)
-		echo 1 > $config_path/suspend
+		$thermal_svc suspend		
+		#echo 1 > $config_path/suspend
 	;;
 	thermresume)
-		echo 0 > $config_path/suspend
+		$thermal_svc resume
+		#echo 0 > $config_path/suspend
 	;;
 	restart|force-reload)
 		do_stop

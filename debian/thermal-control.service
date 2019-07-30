@@ -1,0 +1,18 @@
+[Unit]
+Description=hw-managemnet thermal control service.
+After=hw-management.service
+Requires=hw-management.service
+
+[Service]
+ExecStart=/usr/bin/python /usr/bin/hw-management-thermal-control.py stop
+ExecStop=/usr/bin/python /usr/bin/hw-management-thermal-control.py start
+ExecReload=/usr/bin/python /usr/bin/hw-management-thermal-control.py restart
+PIDFile=/var/run/thermal-control.pid
+Type=forking
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+Alias=thermal.controll.service
+
+
