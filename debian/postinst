@@ -4,8 +4,15 @@ set -e
 if [ ! -L /sbin/init ]; then
 	#initd detected
 	cp -f /usr/bin/hw-management.sh /etc/init.d/hw-management
+	cp -f /usr/bin/hw-management-thermal-control /etc/init.d/hw-management-thermal-control
+	
 	if [ -x "/etc/init.d/hw-management" ]; then
 		update-rc.d hw-management defaults >/dev/null
 		invoke-rc.d hw-management start || exit $?
 	fi
+	if [ -x "/etc/init.d/hw-management-thermal-control" ]; then
+		update-rc.d hw-management-thermal-control defaults >/dev/null
+		invoke-rc.d hw-management-thermal-control start || exit $?
+	fi
+	
 fi
