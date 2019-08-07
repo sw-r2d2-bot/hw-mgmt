@@ -35,6 +35,7 @@
 # Provides:		hw-management-thermal-control
 # Required-Start: $local_fs $network $remote_fs $syslog $hw-management
 # Required-Stop: $local_fs $network $remote_fs $syslog
+# Should-Start $hw-management
 # Default-Start: 2 3 4 5
 # Default-Stop:  0 1 6
 # Short-Description: <Thermal control for Mellanox systems>
@@ -53,11 +54,11 @@ THERMAL_SCRIPT=/usr/bin/$SCRIPT_NAME
 
 case "$1" in
 
-    start|restart|stop|suspend|resume)
+    start|restart|stop|suspend|resume|status)
         $THERMAL_SCRIPT $1 -d=1 -s=1 ${@:2}
         ;;
     *)
-        echo "Usage: /etc/init.d/$SCRIPT_NAME {start|stop|restart|suspen||resume}"
+        echo "Usage: /etc/init.d/$SCRIPT_NAME {start|stop|restart|suspend|resume|status}"
         exit 1
         ;;
 

@@ -80,7 +80,6 @@ import syslog
 import atexit
 from threading import Timer
 
-import pdb
 
 #############################
 # Global const
@@ -97,14 +96,15 @@ class HWConst(object):
     PWM_MAX_RPM = 255
     PWM_DEF_RPM = 153
     FAN_MAX_STATE = 10
-    THERMAL_POLL_TIME = 3
-    REPORT_POLL_TIME = 240
+    THERMAL_POLL_TIME = 30
+    REPORT_POLL_TIME = 90
     FAN_DYN_MIN_FAIL = 20
     HW_MGMT_FOLDER = '/var/run/hw-management'
     HW_MGMT_PID = '/var/run/thermal-control.pid'
     CONFIG_FILE = '/var/run/hw-management/config/thermal_config'
-    WAIT_START = 240
+    WAIT_START = 120
     DEVNULL = '/dev/null'
+    TEMP_TABLE_SCALE = 1000
 
 # PSU fan speed vector
 PSU_FAN_SPEED = ['0x3c', '0x3c', '0x3c', '0x3c', '0x3c',
@@ -165,11 +165,11 @@ Amb [C]    copper/    AOC W/O copper/    AOC W/O    copper/    AOC W/O
 
 TABLE_CLASS1 = {
     "p2c_trust":   {"-127:120":13},
-    "p2c_untrust": {"-127:25":13, "26:13":14 , "31:35":15, "36:120":16},
-    "c2p_trust":   {"-127:20":13, "21:25":14 , "26:13":15, "31:120":16},
-    "c2p_untrust": {"-127:20":13, "21:25":14 , "26:13":15, "31:120":16},
-    "unk_trust":   {"-127:20":13, "21:25":14 , "26:13":15, "31:120":16},
-    "unk_untrust": {"-127:20":13, "21:25":14 , "26:13":15, "31:120":16}
+    "p2c_untrust": {"-127:25":13, "26:31":14 , "31:35":15, "36:120":16},
+    "c2p_trust":   {"-127:20":13, "21:25":14 , "26:31":15, "31:120":16},
+    "c2p_untrust": {"-127:20":13, "21:25":14 , "26:31":15, "31:120":16},
+    "unk_trust":   {"-127:20":13, "21:25":14 , "26:31":15, "31:120":16},
+    "unk_untrust": {"-127:20":13, "21:25":14 , "26:31":15, "31:120":16}
 }
 
 """
@@ -193,11 +193,11 @@ Direction    P2C        C2P        Unknown
 
 TABLE_CLASS2 = {
     "p2c_trust":  {"-127:120":12},
-    "p2c_untrust": {"-127:15":12, "16:25":13, "26:13":14, "31:35":15, "36:120":16},
+    "p2c_untrust": {"-127:15":12, "16:25":13, "26:31":14, "31:35":15, "36:120":16},
     "c2p_trust":   {"-127:14":12, "41:120":13},
     "c2p_untrust": {"-127:14":12, "41:120":13},
     "unk_trust":   {"-127:14":12, "41:120":13},
-    "unk_untrust": {"-127:15":12, "16:25":13, "26:13":14, "31:35":15, "36:120":16}
+    "unk_untrust": {"-127:15":12, "16:25":13, "26:31":14, "31:35":15, "36:120":16}
 }
 
 
@@ -224,9 +224,9 @@ TABLE_CLASS3 = {
     "p2c_trust":   {"-127:120":13},
     "p2c_untrust": {"-127:35":13, "36:14":14 , "41:120":15},
     "c2p_trust":   {"-127:120":13},
-    "c2p_untrust": {"-127:15":13, "16:13":14 , "31:35":15, "36:120":17},
+    "c2p_untrust": {"-127:15":13, "16:31":14 , "31:35":15, "36:120":17},
     "unk_trust":   {"-127:120":13},
-    "unk_untrust": {"-127:15":13, "16:13":14 , "31:35":15, "36:120":17},
+    "unk_untrust": {"-127:15":13, "16:31":14 , "31:35":15, "36:120":17},
     "trust":   30,
     "untrust": 70
 }
@@ -252,11 +252,11 @@ TABLE_CLASS3 = {
 
 TABLE_CLASS4 = {
     "p2c_trust":   {"-127:120":20},
-    "p2c_untrust": {"-127:10":20, "11:15":13, "16:20":14, "21:13":15, "31:120":16},
+    "p2c_untrust": {"-127:10":20, "11:15":13, "16:20":14, "21:31":15, "31:120":16},
     "c2p_trust":   {"-127:120":20},
-    "c2p_untrust": {"-127:20":20, "21:25":13 , "26:13":14, "31:35":15, "36:120":16},
+    "c2p_untrust": {"-127:20":20, "21:25":13 , "26:31":14, "31:35":15, "36:120":16},
     "unk_trust":   {"-127:120":20},
-    "unk_untrust": {"-127:10":20, "11:15":13 , "16:20":14, "11:13":15, "31:120":16}
+    "unk_untrust": {"-127:10":20, "11:15":13 , "16:20":14, "11:31":15, "31:120":16}
 }
 
 '''
@@ -280,10 +280,10 @@ TABLE_CLASS4 = {
 
 TABLE_CLASS5 = {
     "p2c_trust":   {"-127:20":20, "21:25":13 , "26:120":14},
-    "p2c_untrust": {"-127:10":20, "11:25":13 , "26:13":14, "31:35":15, "36:120":16},
-    "c2p_trust":   {"-127:20":20, "21:13":13 , "31:120":14},
+    "p2c_untrust": {"-127:10":20, "11:25":13 , "26:31":14, "31:35":15, "36:120":16},
+    "c2p_trust":   {"-127:20":20, "21:31":13 , "31:120":14},
     "unk_trust":   {"-127:20":20, "26:120":14},
-    "unk_untrust": {"-127:10":20, "11:25":13 , "26:13":14, "31:35":15, "36:120":16},
+    "unk_untrust": {"-127:10":20, "11:25":13 , "26:31":14, "31:35":15, "36:120":16},
     "trust":   20,
     "untrust": 60
 }
@@ -478,17 +478,14 @@ class ThermalManagement(object):
             self.root_folder = HWConst.HW_MGMT_FOLDER
         else:
             self.root_folder = root_folder
-        self.log.action('Startnig thermal control service. Classs {0}, PSU:{1}, Tacho:{2}'.format(
-                                                                                                thermal_class,
-                                                                                                max_tachos,
-                                                                                                max_psus))
+
         self.type = int(thermal_class)
         self.max_tachos = int(max_tachos)
         self.max_psus = int(max_psus)
         self.report_timer = None
         self.polling_timer = None
         self.thermal_table = None
-        self.suspend_thermal = 0
+        self.suspend_thermal = '0'
         self.pwm_required = HWConst.PWM_NOACT
         self.fan_dynamic_min = 12
         self.fan_dynamic_min_last = 12
@@ -542,7 +539,18 @@ class ThermalManagement(object):
             Start thermal algorithm handling
         '''
         res = 0
+        self.log.action('Startnig thermal control service.'
+                        'Classs {0}, Tacho:{2}, PSU:{1}'.format(
+                                                                self.type,
+                                                                self.max_tachos,
+                                                                self.max_psus))
+
         self.log.action("Mellanox thermal control is started")
+        delay = int(self._read_file('config/thermal_delay', '0'))
+        if delay:
+            delay = int(delay)
+            time.sleep(delay)
+
         self.report_timer = RepeatedTimer(self.periodic_report_time, self.thermal_periodic_report)
         if not self.report_timer:
             res = 1
@@ -605,6 +613,7 @@ class ThermalManagement(object):
         try:
             with open(filename, 'w') as content_file:
                 content_file.write(str(data))
+                content_file.close()
         except IOError:
             pass
 
@@ -684,8 +693,8 @@ class ThermalManagement(object):
             return 1
 
         for i in range(1, self.module_counter + 1):
-            if self._check_file('thermal/temp_module{0}'.format(i)):
-                if self._check_file('thermal/temp_fault_module{0}'.format(i)) == False:
+            if self._check_file('thermal/module{0}_temp'.format(i)):
+                if self._check_file('thermal/module{0}_temp_fault'.format(i)) == False:
                     self.log.failure ("QSFP module attributes are not exist")
                     return 1
 
@@ -699,6 +708,7 @@ class ThermalManagement(object):
                 if self._check_file('thermal/psu{0}_status'.format(i)) == False:
                     self.log.failure ("PS units status attributes are not exist")
                     return 1
+        return 0
 
     def _tz_check_suspend(self):
         '''
@@ -731,7 +741,7 @@ class ThermalManagement(object):
             return untrusted_sensor
 
         for i in range(1, self.module_counter + 1):
-            fault = self._thermal_read_file('temp_fault_module{0}'.format(i))
+            fault = self._thermal_read_file('module{0}_temp_fault'.format(i))
             if fault == '1':
                 untrusted_sensor = 1
                 break
@@ -793,12 +803,12 @@ class ThermalManagement(object):
                 self.log.success ("tacho{0} speed is {1} fault is {2}".format(i, tacho, fault))
 
         for i in range(1, self.module_counter + 1):
-            temp_input_module = self._thermal_read_file('temp_input_module{0}'.format(i) )
+            temp_input_module = self._thermal_read_file('module{0}_temp_input'.format(i) )
             if temp_input_module :
                 if int(temp_input_module) > 0:
-                    temp_fault_module = self._thermal_read_file('temp_fault_module{0}'.format(i))
-                    temp_crit_module = self._thermal_read_file('temp_crit_module{0}'.format(i))
-                    temp_emergency_module = self._thermal_read_file("temp_emergency_module{0}".format(i))
+                    temp_fault_module = self._thermal_read_file('module{0}_temp_fault'.format(i))
+                    temp_crit_module = self._thermal_read_file('module{0}_temp_crit'.format(i))
+                    temp_emergency_module = self._thermal_read_file("module{0}_temp_emergency".format(i))
                     self.log.success ( "module{0} temp {1} fault {2} crit {3} emerg {4}".format(i,
                                                                                         temp_input_module,
                                                                                         temp_fault_module,
@@ -871,13 +881,13 @@ class ThermalManagement(object):
         @return: pwm value calculated dependig of PSU state
         '''
         for psu in range(1, self.max_psus + 1):
-            present = self._thermal_read_file("psu{0}_status".format(psu) )
+            present = self._thermal_read_file("psu{0}_pwr_status".format(psu) )
             if present == "1":
                 bus     = self._read_file("config/psu{0}_i2c_bus".format(psu) )
                 addr    = self._read_file("config/psu{0}_i2c_addr".format(psu) )
                 command = self._read_file("config/fan_command")
                 entry   = self._thermal_read_file("cooling_cur_state")
-                speed   = PSU_FAN_SPEED[entry]
+                speed   = PSU_FAN_SPEED[int(entry)]
                 subprocess.call("i2cset -f -y {0} {1} {2} {3} wp".format(bus, addr, command, speed), shell = True)
 
     def _get_fan_faults(self):
@@ -900,7 +910,6 @@ class ThermalManagement(object):
                 self.fan_dynamic_min = HWConst.FAN_DYN_MIN_FAIL
                 set_cur_state = self.fan_dynamic_min - HWConst.FAN_MAX_STATE
                 self._thermal_write_file("cooling_cur_state", set_cur_state)
-
                 self._thermal_write_file("pwm1", HWConst.PWM_MAX_RPM)
                 break
         return res
@@ -931,10 +940,10 @@ class ThermalManagement(object):
 
         table = self.thermal_table["table"]
         line = table["{0}_{1}".format(flow_dir, trusted)]
-        for key, val in enumerate(line):
+        for key, val in line.iteritems():
             t_range = key.split(':')
-            t_min = t_range[0]
-            t_max = t_range[1]
+            t_min = int(t_range[0]) * HWConst.TEMP_TABLE_SCALE
+            t_max = int(t_range[1]) * HWConst.TEMP_TABLE_SCALE
             if t_min <= ambient <= t_max:
                 self.fan_dynamic_min = val
                 break
@@ -1018,6 +1027,10 @@ class ThermalManagement(object):
             time.sleep(1)
             return
         elif self.suspend_thermal == "1":
+            # Validate there is no enabled thermal zones.
+            pwm = self._thermal_read_file("pwm1")
+            if pwm != HWConst.PWM_DEF_RPM:
+                self._disable_zones_def_pwm()
             time.sleep(1)
             return
 
@@ -1146,7 +1159,7 @@ class Daemon(object):
         @summary:
             Signal handler for trination signals
         '''
-        print "sigterm_handler " + str(os.getpid())
+        print "Thermal-algo: sigterm_handler " + str(os.getpid())
         if self.thermal_management:
             self.thermal_management.log.action("Mellanox thermal control is terminated PID={}".format( os.getpid() ))
             self.thermal_management.stop()
@@ -1157,11 +1170,11 @@ class Daemon(object):
         @summary:
             Starting thermal-controll daemon
         '''
-        print "Starting..."
+        print "Thermal-algo: starting..."
         pid = self.get_pid_by_file()
         if pid:
             # Only one instance of thermal control could be activated
-            if os.path.isdir( os.path.join("/proc", pid) ):
+            if os.path.isdir( os.path.join("/proc", str(pid)) ):
                 log = Logger(self.cmdline_arg.use_syslog, self.cmdline_arg.log_file)
                 log.warn('Mellanox thermal control is already running.'.format(self.pid_file))
                 sys.exit(1)
@@ -1200,10 +1213,10 @@ class Daemon(object):
         @summary:
             Stop the thermal-controll daemon.
         '''
-        print "Stopping..."
+        print "Thermal-algo: stopping..."
         pid = self.get_pid_by_file()
         if not pid:
-            print "PID file {0} doesn't exist. Is the Mellanox thermal control not running?".format(self.pid_file)
+            print "Err. PID file {0} doesn't exist. Is the Mellanox thermal control running?".format(self.pid_file)
             return
 
         # Time to kill
@@ -1258,51 +1271,90 @@ class Daemon(object):
             sys.exit(1)
         self.thermal_management.resume()
 
-
-class LoadFromFile (argparse.Action):
-    '''
+    def status(self):
+        '''
         @summary:
-            helper argparse class action to parse arguments from file
-    '''
-    def __call__ (self, parser, namespace, values, option_string = None):
-        if os.path.isfile(values):
-            with open(values, 'r') as config:
-                parser.parse_args(config.read().split(), namespace)
+            Get servise status 1- means active
+        '''
+        pid = self.get_pid_by_file()
+        if pid:
+            if os.path.isdir( os.path.join("/proc", str(pid)) ):
+                print "service is running"
+                return 0
+        print "service stopped"
+        return 0
 
 if __name__ == '__main__':
-
     try:
-        CMD_PARSER = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
-        CMD_PARSER.add_argument('cmd', help='Mandatory - command start|stop|restart|suspend|resume of thermal control', choices=('start', 'stop', 'restart', 'suspend', 'resume'))
-        CMD_PARSER.add_argument('-f', '--config-file', action=LoadFromFile, help='load options from config file f.e. /tmp/thermal_control_conf', default= HWConst.CONFIG_FILE)
-        CMD_PARSER.add_argument('-l', '--log_file', dest='log_file', help='output to log file', default=None)
-        CMD_PARSER.add_argument('-s', '--syslog', dest='use_syslog', help='output syslog', default='0', choices=('0', '1'))
-        CMD_PARSER.add_argument('-r', '--root_folder', dest='root_folder', help='Define hw-managewment folder for sensor reading', default=HWConst.HW_MGMT_FOLDER)
-        CMD_PARSER.add_argument('-w', '--wait', dest='wait', help='Define how mant sec wait before start algo', default=HWConst.WAIT_START)
-        CMD_PARSER.add_argument('-c', '--class', dest='sys_class', help='Define system thermal class depending of system type', default=1)
-        CMD_PARSER.add_argument('-t', '--max_tacho', dest='tacho', help='Define FAN Tacho count for current system', default=4)
-        CMD_PARSER.add_argument('-p', '--max_psu', dest='psu', help='Define replaseble PSU count for current system', default=0)
-        CMD_PARSER.add_argument('-d', '--daemonize', dest='daemonize', help='Rus as a deamon', default=0)
-        CMD_PARSER = CMD_PARSER.parse_args()
+        CMD_PARSER = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        CMD_PARSER.add_argument('cmd',
+                            choices=('start', 'stop', 'restart', 'suspend', 'resume', "status"),
+                            help='Mandatory - command start|stop|restart|suspend|resume|status of thermal control',
+                            nargs='?')
+        CMD_PARSER.add_argument('-c', '--class',
+                            dest='sys_class',
+                            help='Define system thermal class depending of system type',
+                            default=1)
+        CMD_PARSER.add_argument('-t', '--max_tacho',
+                            dest='tacho',
+                            help='Define FAN Tacho count for current system',
+                            default=4)
+        CMD_PARSER.add_argument('-p', '--max_psu',
+                            dest='psu',
+                            help='Define replaseble PSU count for current system',
+                            default=0)
+        CMD_PARSER.add_argument('-f', '--config-file',
+                            dest='config_file',
+                            help='load options from config file f.e. /tmp/thermal_control_conf',
+                            default=HWConst.CONFIG_FILE)
+        CMD_PARSER.add_argument('-l', '--log_file',
+                            dest='log_file',
+                            help='add output to log file',
+                            default=None)
+        CMD_PARSER.add_argument('-s', '--syslog',
+                            dest='use_syslog',
+                            help='enable(1)/disable(0) output to syslog',
+                            default='0',
+                            choices=('0', '1'))
+        CMD_PARSER.add_argument('-r', '--root_folder',
+                            dest='root_folder',
+                            help='Define hw-managewment folder for sensor reading',
+                            default=HWConst.HW_MGMT_FOLDER)
+        CMD_PARSER.add_argument('-w', '--wait',
+                            dest='wait',
+                            help='Define how mant sec wait before start algo',
+                            default=HWConst.WAIT_START)
+        CMD_PARSER.add_argument('-d', '--daemonize',
+                            dest='daemonize',
+                            help='Rus as a deamon',
+                            default=0)
 
-        DAEMON = Daemon(HWConst.HW_MGMT_PID, CMD_PARSER)
+        CMD_PARSER_ARGS = CMD_PARSER.parse_args()
 
-        if CMD_PARSER.cmd == 'start':
+        if os.path.isfile(CMD_PARSER_ARGS.config_file):
+            with open(CMD_PARSER_ARGS.config_file, 'r') as config:
+                CMD_PARSER_ARGS = CMD_PARSER.parse_args(config.read().split() + sys.argv[1:])
+
+        DAEMON = Daemon(HWConst.HW_MGMT_PID, CMD_PARSER_ARGS)
+
+        if CMD_PARSER_ARGS.cmd == 'start':
             DAEMON.start()
-        elif CMD_PARSER.cmd == 'stop':
+        elif CMD_PARSER_ARGS.cmd == 'stop':
             DAEMON.stop()
-        elif CMD_PARSER.cmd == 'restart':
+        elif CMD_PARSER_ARGS.cmd == 'restart':
             DAEMON.restart()
-        elif CMD_PARSER.cmd == 'suspend':
+        elif CMD_PARSER_ARGS.cmd == 'suspend':
             DAEMON.suspend()
-        elif CMD_PARSER.cmd == 'resume':
+        elif CMD_PARSER_ARGS.cmd == 'resume':
             DAEMON.resume()
+        elif CMD_PARSER_ARGS.cmd == 'status':
+            DAEMON.status()
         else:
-            print "Inavlid cmd {0}".format(CMD_PARSER.cmd)
+            print "Inavlid cmd {0}".format(CMD_PARSER_ARGS.cmd)
             sys.exit(1)
-        sys.exit(0)
 
     except Exception as err:
         traceback.print_exc()
         print err.message
 
+    sys.exit(0)

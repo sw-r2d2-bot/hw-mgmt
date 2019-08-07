@@ -572,6 +572,7 @@ do_start()
 {
 	create_symbolic_links
 	check_system
+	echo  -c=$thermal_type -t=$max_tachos -p=$max_psus -s=$use_syslog -w=120 > /var/run/hw-management/config/thermal_config    
 	depmod -a 2>/dev/null
 	udevadm trigger --action=add
 	echo $psu1_i2c_addr > $config_path/psu1_i2c_addr
@@ -584,9 +585,7 @@ do_start()
 	find_i2c_bus
 	asic_bus=$(($i2c_asic_bus_default+$i2c_bus_offset))
 	echo $asic_bus > $config_path/asic_bus
-	connect_platform
-	
-	echo  -c=$thermal_type -t=$max_tachos -p=$max_psus -s=$use_syslog -w=120 > /var/run/hw-management/config/thermal_config	
+	connect_platform	
 }
 
 do_stop()

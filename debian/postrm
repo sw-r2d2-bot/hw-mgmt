@@ -8,6 +8,7 @@ if ps -p 1 | grep -w init >/dev/null; then
 		rm -f /etc/init.d/hw-management
 	fi
 	if [ -x "/etc/init.d/hw-management-thermal-control" ]; then
+        service hw-management-thermal-control stop
 		update-rc.d -f hw-management-thermal-control remove >/dev/null
 		rm -f /etc/init.d/hw-management-thermal-control
 	fi

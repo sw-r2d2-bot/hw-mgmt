@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if ps -p 1 | grep -w init >/dev/null; then
+	#initd detected
+	if [ -x "/etc/init.d/hw-management-thermal-control" ]; then
+		service hw-management-thermal-control stop
+	fi
+fi
+
