@@ -595,13 +595,15 @@ do_stop()
 	if [ -f $PID ]; then
 		pid=`cat $PID`
 		if [ -d /proc/$pid ]; then
-			kill $pid
+			kill -9 $pid
 		fi
+		rm -rf $PID
 	fi
 
 	check_system
 	disconnect_platform
 	remove_symbolic_links
+	rm /var/run/hw-management*
 }
 
 function lock_service_state_change()
@@ -635,13 +637,6 @@ do_chip_up_down()
 		;;
 	1)
 		lock_service_state_change
-		[ -f "$config_path/chipup_dis" ] && disable=`cat $config_path/chipup_dis`
-		if [ $disable ] && [ "$disable" -gt 0 ]; then
-			disable=$(($disable-1))
-			echo $disable > $config_path/chipup_dis
-			unlock_service_state_change
-			exit 0
-		fi
 		if [ ! -d /sys/bus/i2c/devices/$bus-$i2c_asic_addr_name ]; then
 			delay=`cat $config_path/chipup_delay`
 			sleep $delay
@@ -676,31 +671,31 @@ case $ACTION in
 		do_start
 	;;
 	stop)
-		do_stop
+		if [ -d /var/run/hw-management ]; then
+			do_chip_up_down 0
+			sleep 5
+			do_stop
+		fi
 	;;
 	chipup)
-		do_chip_up_down 1 $2
+		if [ -d /var/run/hw-management ]; then
+			do_chip_up_down 1 $2
+		fi
 	;;
 	chipdown)
-		do_chip_up_down 0
-	;;
-	chipupen)
-		echo 0 > $config_path/chipup_dis
-	;;
-	chipupdis)
-		if [ -z "$2" ]; then
-			echo 1 > $config_path/chipup_dis
-		else
-			echo $2 > $config_path/chipup_dis
+		if [ -d /var/run/hw-management ]; then
+			do_chip_up_down 0
 		fi
 	;;
 	thermsuspend)
-		$thermal_svc suspend		
-		#echo 1 > $config_path/suspend
+		if [ -d /var/run/hw-management ]; then
+			echo 1 > $config_path/suspend
+		fi
 	;;
 	thermresume)
-		$thermal_svc resume
-		#echo 0 > $config_path/suspend
+		if [ -d /var/run/hw-management ]; then
+			echo 0 > $config_path/suspend
+		fi
 	;;
 	restart|force-reload)
 		do_stop
