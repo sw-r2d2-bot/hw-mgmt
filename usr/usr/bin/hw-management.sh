@@ -688,14 +688,10 @@ case $ACTION in
 		fi
 	;;
 	thermsuspend)
-		if [ -d /var/run/hw-management ]; then
-			echo 1 > $config_path/suspend
-		fi
+		$thermal_svc suspend		
 	;;
 	thermresume)
-		if [ -d /var/run/hw-management ]; then
-			echo 0 > $config_path/suspend
-		fi
+		$thermal_svc resume
 	;;
 	restart|force-reload)
 		do_stop
