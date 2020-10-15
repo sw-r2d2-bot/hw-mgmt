@@ -1,0 +1,27 @@
+From 345a7a92b8e7cf5b9377882c347dd07e0baa533a Mon Sep 17 00:00:00 2001
+From: Mykola Kostenok <c_mykolak@nvidia.com>
+Date: Thu, 15 Oct 2020 18:51:10 +0300
+Subject: [PATCH] add at24 debug print.
+
+Add debug print to debug missing eeprom.
+
+Signed-off-by: Mykola Kostenok <c_mykolak@nvidia.com>
+---
+ drivers/misc/eeprom/at24.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/misc/eeprom/at24.c b/drivers/misc/eeprom/at24.c
+index dc35376..0966e30 100644
+--- a/drivers/misc/eeprom/at24.c
++++ b/drivers/misc/eeprom/at24.c
+@@ -718,6 +718,7 @@ static int at24_probe(struct i2c_client *client)
+ 	pm_runtime_idle(dev);
+ 	if (err) {
+ 		err = -ENODEV;
++		dev_err(dev,"one-byte test failed.");
+ 		goto err_clients;
+ 	}
+ 
+-- 
+2.8.4
+
